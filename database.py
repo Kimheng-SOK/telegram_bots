@@ -1,14 +1,27 @@
 from datetime import datetime, timezone
 from typing import Optional
-
 from sqlmodel import Field, SQLModel, Session, create_engine, select
 
 from config import DATABASE_URL, DEFAULT_LANG
 
-# SQLite multi-thread safety check
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(DATABASE_URL, echo=False, connect_args=connect_args)
+# # SQLite multi-thread safety check
+# connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+# engine = create_engine(DATABASE_URL, echo=False, connect_args=connect_args)
 
+# Fix Render/Heroku connection strings (postgres:// -> postgresql://)
+PROD_DATABASE_URL = DATABASE_URL
+if PROD_DATABASE_URL.startswith("postgres://"):
+    PROD_DATABASE_URL = PROD_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# SQLite requires check_same_thread=False; PostgreSQL does not accept it
+connect_args = {"check_same_thread": False} if PROD_DATABASE_URL.startswith("sqlite") else {}
+
+engine = create_engine(
+    PROD_DATABASE_URL,
+    echo=False,
+    connect_args=connect_args,
+    pool_pre_ping=True,  # Prevents stale connection drops on cloud DB hosts
+)
 
 # -------------------------------------------------------------------- Models
 class Matches(SQLModel, table=True):
