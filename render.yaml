@@ -1,0 +1,14 @@
+services:
+  - type: worker
+    name: match-telegram-bot
+    env: docker
+    plan: free
+    repo: https://github.com/Kimheng-SOK/telegram_bots.git
+    branch: main
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: TIME_CARD_DELETE
+        value: 14400
+      - key: DEFAULT_LANG
+        value: km
