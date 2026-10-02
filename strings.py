@@ -46,7 +46,43 @@ STR = {
     },
     "only_admin": {
         "en": "⚠️ Only group administrators can use this command.",
-        "km": "⚠️ មានតែអ្នកគ្រប់គ្រងក្រុមប៉ុណ្ណោះដែលអាជ្ញាធរប្រើពាក្យបញ្ជានេះ។",
+        "km": "⚠️ មានតែអ្នកគ្រប់គ្រងក្រុមប៉ុណ្ណោះដែលអានប្រើពាក្យបញ្ជានេះបាន។"
+    },
+    "no_match_found": {
+        "en": "❌ No match found to reopen.",
+        "km": "❌ មិនមានការប្រកួតសម្រាប់បើកឡើងវិញទេ។"
+    },
+    "reopen_prompt": {
+        "en": "Click below to confirm reopening the match form:",
+        "km": "ចុចខាងក្រោមដើម្បីបញ្ជាក់ការបើកទម្រង់ឡើងវិញ៖"
+    },
+    "btn_confirm_reopen": {
+        "en": "🔓 Confirm Reopen",
+        "km": "🔓 បញ្ជាក់ការបើកឡើងវិញ"
+    },
+    "alert_match_reopened": {
+        "en": "🔓 The match form has been reopened successfully!",
+        "km": "🔓 ទម្រង់ការប្រកួតត្រូវបានបើកឡើងវិញដោយជោគជ័យ!"
+    },
+    "alert_match_closed": {
+        "en": "🔒 The match form is now closed.",
+        "km": "🔒 ទម្រង់ការប្រកួតត្រូវបានបិទហើយ!"
+    },
+    "alert_already_open": {
+        "en": "⚠️ This match form is already open.",
+        "km": "⚠️ ទម្រង់ការប្រកួតនេះត្រូវបានបើករួចហើយ!"
+    },
+    "close_prompt": {
+        "en": "Click below to confirm closing the match form:",
+        "km": "ចុចខាងក្រោមដើម្បីបញ្ជាក់ការបិទទម្រង់៖",
+    },
+    "btn_confirm_close": {
+        "en": "🔒 Confirm Close",
+        "km": "🔒 បញ្ជាក់ការបិទ",
+    },
+    "alert_match_closed": {
+        "en": "🔒 The match form is now closed.",
+        "km": "🔒 ទម្រង់ការប្រកួតត្រូវបានបិទហើយ!",
     },
     "lang_updated": {
         "en": "✅ Language updated successfully!",

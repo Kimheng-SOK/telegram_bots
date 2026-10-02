@@ -12,7 +12,7 @@ from telegram.ext import (
 from config import BOT_TOKEN
 from database import init_db
 from handlers.general import cmd_lang, on_lang_button, cmd_help
-from handlers.voting import on_button, cmd_attend, cmd_notattend, cmd_change, cmd_close, cmd_reopen
+from handlers.voting import on_button, cmd_attend, cmd_notattend, cmd_change, cmd_close, cmd_reopen, cb_reopen_confirm, cb_close_confirm
 from handlers.match_wizard import newmatch, got_form, confirm, cancel, FORM, CONFIRM
 from utils import schedule_command_deletion
 
@@ -70,6 +70,14 @@ def main():
     app.add_handler(
         MessageHandler(filters.COMMAND, auto_delete_user_commands),
         group=1
+    )
+
+    # Callback Handler for button click
+    app.add_handler(
+        CallbackQueryHandler(cb_reopen_confirm, pattern=r"^act_reopen:\d+$")
+    )
+    app.add_handler(
+        CallbackQueryHandler(cb_close_confirm, pattern=r"^act_close:\d+$")
     )
 
     print("⚽ Match Bot is running...")

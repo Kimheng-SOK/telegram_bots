@@ -251,3 +251,14 @@ async def clean(bot, chat_id: int, ids: list):
             await bot.delete_message(chat_id, i)
         except TelegramError:
             pass
+
+async def pin_match_card(bot, chat_id: int, message_id: int):
+    """Pins the match message in the chat silently."""
+    try:
+        await bot.pin_chat_message(
+            chat_id=chat_id,
+            message_id=message_id,
+            disable_notification=True,  # Keeps group quiet when re-pinned
+        )
+    except TelegramError:
+        pass  # Fails gracefully if bot lacks 'Pin Messages' permission

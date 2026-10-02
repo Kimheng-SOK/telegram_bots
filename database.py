@@ -83,6 +83,13 @@ def latest_open(chat_id: int) -> Optional[Matches]:
         return session.exec(statement).first()
 
 
+# In database.py
+def get_match_by_id(mid: int) -> Optional[Matches]:
+    """Retrieves a single match record by ID."""
+    with Session(engine) as session:
+        return session.get(Matches, mid)
+
+
 def get_votes(mid: int) -> list[Votes]:
     with Session(engine) as session:
         statement = (
