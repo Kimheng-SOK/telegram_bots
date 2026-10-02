@@ -17,16 +17,21 @@ def _force_reply():
 async def newmatch(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type == "private":
         await update.message.reply_text(
-            "Please run /newmatch inside your team group. / សូមប្រើ /newmatch នៅក្នុងក្រុម。"
+            "Please run /newmatch inside your team group. / សូមប្រើ /newmatch នៅក្នុងក្រុម។"
         )
         return ConversationHandler.END
 
     lang = get_lang(update.effective_chat.id)
     keys = {"en": ["en"], "km": ["km"], "both": ["en", "km"]}[lang]
-    forms = "\n".join(f"<pre>{TEMPLATES[k]}</pre>" for k in keys)
+
+    # Pre-fill template prompt
+    forms = "\n\n".join(f"<pre>{TEMPLATES[k]}</pre>" for k in keys)
 
     prompt = await update.message.reply_text(
-        f"📝 <b>{t(lang, 'form_title')}</b>\n{t(lang, 'form_help')}\n\n{forms}\n/cancel",
+        f"📝 <b>{t(lang, 'form_title')}</b>\n"
+        f"<i>{t(lang, 'form_help')}</i>\n\n"
+        f"{forms}\n\n"
+        f"❌ /cancel",
         parse_mode=ParseMode.HTML,
         reply_markup=_force_reply(),
     )

@@ -20,6 +20,7 @@ class Matches(SQLModel, table=True):
     end: str
     size: int
     location: str
+    location_url: Optional[str] = Field(default=None)
     opponent: str
     kits: str
     view: str = Field(default="attend")
@@ -101,6 +102,7 @@ def create_match(chat_id: int, data: dict) -> int:
             end=data["end"],
             size=data["size"],
             location=data["location"],
+            location_url=data.get("location_url"),
             opponent=data["opponent"],
             kits=data["kits"],
         )

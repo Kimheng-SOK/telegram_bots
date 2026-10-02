@@ -68,6 +68,14 @@ STR = {
             "/cancel – បោះបង់ការបង្កើត"
         ),
     },
+    "form_title": {
+        "en": "Create New Match Announcement",
+        "km": "បង្កើតការប្រកួតថ្មី",
+    },
+    "form_help": {
+        "en": "Copy the template below, replace with your match info, and reply to this message:",
+        "km": "សូមចម្លងទម្រង់ខាងក្រោម កែប្រែព័ត៌មានតាមការប្រកួតរបស់អ្នក ហើយផ្ញើReplyសារនេះ៖",
+    },
 }
 
 LONG_KEYS = {"footer", "form_help", "resend", "help_text"}
@@ -83,8 +91,26 @@ FIELD_LABELS = {
 }
 
 TEMPLATES = {
-    "en": "Date: \nStart: \nEnd: \nTeam: 7\nLocation: \nOpponent: \nKit: ",
-    "km": "កាលបរិច្ឆេទ: \nម៉ោងចាប់ផ្តើម: \nម៉ោងបញ្ចប់: \nក្រុម: 7\nទីតាំង: \nក្រុមគូប្រជែង: \nឈុតអាវ: ",
+    "en": (
+        "Date: Sunday 04.10.2026\n"
+        "Start: 07:00 PM\n"
+        "End: 09:00 PM\n"
+        "Team: 10\n"
+        "Location: Sokhak Sport Club\n"
+        "Location URL: https://maps.google.com/?q=Sokhak+Sport+Club\n"
+        "Opponent: រ៉ាដាសន្តិភាព\n"
+        "Kit: Green"
+    ),
+    "km": (
+        "កាលបរិច្ឆេទ: ថ្ងៃអាទិត្យ 04.10.2026\n"
+        "ម៉ោងចាប់ផ្តើម: 07:00 PM\n"
+        "ម៉ោងបញ្ចប់: 09:00 PM\n"
+        "ក្រុម: 10\n"
+        "ទីតាំង: Sokhak Sport Club\n"
+        "តំណភ្ជាប់ទីតាំង: https://maps.google.com/?q=Sokhak+Sport+Club\n"
+        "ក្រុមគូប្រជែង: រ៉ាដាសន្តិភាព\n"
+        "ឈុតអាវ: ពណ៌បៃតង"
+    ),
 }
 
 

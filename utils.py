@@ -2,6 +2,7 @@ import html
 import re
 import asyncio
 import unicodedata
+import urllib.parse
 from telegram import InlineKeyboardButton as Btn, InlineKeyboardMarkup as Markup
 from telegram.constants import ParseMode
 from telegram.error import BadRequest, TelegramError
@@ -63,6 +64,17 @@ def render(m, votes, lang: str = "km") -> str:
     size = get_val(m, "size")
     total_spots = int(size) * 2 if size and str(size).isdigit() else None
 
+    # 📍 Location Hyperlink Logic
+    raw_loc = get_val(m, "location") or ""
+    loc_url = get_val(m, "location_url")
+
+    # Fallback: Auto-generate Google Maps search link if no direct URL was provided
+    if not loc_url and raw_loc:
+        encoded_query = urllib.parse.quote(raw_loc)
+        loc_url = f"https://www.google.com/maps/search/?api=1&query={encoded_query}"
+
+    loc_display = f'<a href="{loc_url}">{e(raw_loc)}</a>' if loc_url else e(raw_loc)
+
     title_text = f"🏆  {t(lang, 'title')}  🏆"
 
     # 1. Calculate dynamic box width based on title content
@@ -82,10 +94,10 @@ def render(m, votes, lang: str = "km") -> str:
 
     # Assemble Render Lines
     lines = [
-        f"🏆  {t(lang, 'title')}  🏆",
+        f"🏆 <b><i>  {t(lang, 'title')} </i></b> 🏆",
         f"📅 <b>{t(lang, 'date_label')}:</b> {e(get_val(m, 'date'))}",
         f"⏰ <b>{t(lang, 'time_label')}:</b> {e(get_val(m, 'start'))} - {e(get_val(m, 'end'))}",
-        f"📍 <b>{t(lang, 'location_label')}:</b> {e(get_val(m, 'location'))}",
+        f"📍 <b>{t(lang, 'location_label')}:</b> {loc_display}",
         f"<code>{dynamic_line}</code>",
 
         f"⚔️ <b>{t(lang, 'vs_label')}:</b> {e(get_val(m, 'opponent'))}",
