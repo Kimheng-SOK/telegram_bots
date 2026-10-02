@@ -1,9 +1,10 @@
 import asyncio
+
 from telegram import Update
 from telegram.error import TelegramError
 from telegram.ext import ContextTypes
-
 from database import (
+    engine,
     get_match,
     get_lang,
     get_votes,
@@ -11,9 +12,12 @@ from database import (
     record_vote,
     set_match_view,
     close_match,
+    reopen_match,
+    get_latest_match
 )
 from strings import t
-from utils import refresh, is_admin, delete_after
+from utils import refresh, is_admin, delete_after, clean
+
 
 
 def get_val(obj, key, default=None):
@@ -49,7 +53,6 @@ async def on_button(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             key = "you_yes" if changed else "already_yes"
         else:
             key = "you_no" if changed else "already_no"
-        await asyncio.sleep(1)
         await q.answer(t(lang, key), show_alert=True)
     else:
         new = "not" if m_view == "attend" else "attend"
@@ -131,3 +134,38 @@ async def cmd_close(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Optional: Schedule the closed match card to auto-delete after 2 hours (7200 seconds)
     # if m_msg_id:
     #     asyncio.create_task(delete_after(ctx.bot, chat_id, m_msg_id, 7200))
+
+
+
+async def cmd_reopen(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    user_id = update.effective_user.id
+
+    # 1. Verify admin permissions
+    if not await is_admin(context.bot, chat_id, user_id):
+        msg = await update.message.reply_text("❌ Only admins can reopen the match.")
+        asyncio.create_task(delete_after(context.bot, chat_id, msg.message_id, 5))
+        return
+
+    # 2. Extract match ID (either from command args e.g. /reopen 12, or default to the last closed match)
+    match_id = None
+    if context.args and context.args[0].isdigit():
+        match_id = int(context.args[0])
+    else:
+        match = get_latest_match(chat_id)
+        if match:
+            match_id = match.id
+
+    if not match_id:
+        msg = await update.message.reply_text("❌ No match found to reopen.")
+        asyncio.create_task(delete_after(context.bot, chat_id, msg.message_id, 5))
+        return
+
+    # 3. Reopen in DB and refresh the message (restores voting buttons)
+    reopen_match(match_id)
+    await refresh(context.bot, match_id)
+
+    # Clean up the command message and send feedback
+    await clean(context.bot, chat_id, [update.message.message_id])
+    confirm = await update.message.reply_text("🔓 Match form has been reopened!")
+    asyncio.create_task(delete_after(context.bot, chat_id, confirm.message_id, 5))

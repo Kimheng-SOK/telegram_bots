@@ -57,6 +57,7 @@ STR = {
             "⚽ Match bot\n"
             "/newmatch – Create a new match announcement\n"
             "/close – [Admin] Close voting & unpin post\n"
+            "/reopen - [Admin] Reopen voting post for latest close\n"
             "/lang – [Admin] Set group language\n"
             "/cancel – Cancel active match creation"
         ),
@@ -64,6 +65,7 @@ STR = {
             "⚽ Match bot\n"
             "/newmatch – បង្កើតការប្រកួតថ្មី\n"
             "/close – បិទការចុះឈ្មោះ (សម្រាប់ admin)\n"
+            "/reopen - បើកឡើងវិញនូវតារាងចុងក្រោយគេ (សម្រាប់ admin)\n"
             "/lang – ប្តូរភាសា (សម្រាប់ admin)\n"
             "/cancel – បោះបង់ការបង្កើត"
         ),

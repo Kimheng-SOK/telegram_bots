@@ -136,6 +136,27 @@ def close_match(mid: int):
             session.commit()
 
 
+def reopen_match(mid: int):
+    """Reopens a match so users can vote again."""
+    with Session(engine) as session:
+        match = session.get(Matches, mid)
+        if match:
+            match.open = 1
+            session.commit()
+
+
+def get_latest_match(chat_id: int) -> Optional[Matches]:
+    """Retrieves the most recent match for a chat regardless of status."""
+    with Session(engine) as session:
+        statement = (
+            select(Matches)
+            .where(Matches.chat_id == chat_id)
+            .order_by(Matches.id.desc())
+            .limit(1)
+        )
+        return session.exec(statement).first()
+
+
 def record_vote(mid: int, user_id: int, user_full_name: str, status: str) -> bool:
     with Session(engine) as session:
         vote = session.get(Votes, (mid, user_id))

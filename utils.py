@@ -3,12 +3,17 @@ import re
 import asyncio
 import unicodedata
 import urllib.parse
+import logging
+from telegram import Update
+from telegram.ext import ContextTypes
 from telegram import InlineKeyboardButton as Btn, InlineKeyboardMarkup as Markup
 from telegram.constants import ParseMode
 from telegram.error import BadRequest, TelegramError
 
 from database import get_lang, get_match, get_votes
 from strings import STR, FIELD_LABELS, t, pick
+
+logger = logging.getLogger(__name__)
 
 LINE = "━━━━━━━━━━━━━━━━━━"
 e = html.escape
@@ -211,6 +216,34 @@ def parse_form(text: str):
             del data["size"]
     return data, [k for k in REQUIRED if k not in data]
 
+async def delete_job_callback(context: ContextTypes.DEFAULT_TYPE):
+    """Callback triggered by JobQueue to delete a user's command message."""
+    job_data = context.job.data
+    chat_id = job_data["chat_id"]
+    message_id = job_data["message_id"]
+
+    try:
+        await context.bot.delete_message(chat_id=chat_id, message_id=message_id)
+        logger.info(f"Auto-deleted command message {message_id} in chat {chat_id}")
+    except BadRequest as ex:
+        # Handles "Message to delete not found", "Message can't be deleted", etc.
+        logger.debug(f"Could not auto-delete message {message_id}: {ex.message}")
+    except Exception as ex:
+        logger.warning(f"Unexpected error deleting message {message_id}: {ex}")
+
+
+def schedule_command_deletion(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_id: int, delay_seconds: int = 900):
+    """
+    Schedules auto-deletion for user/admin commands.
+    Default delay: 900 seconds = 15 minutes.
+    For 1 hour, use delay_seconds = 3600.
+    """
+    context.job_queue.run_once(
+        delete_job_callback,
+        when=delay_seconds,
+        data={"chat_id": chat_id, "message_id": message_id},
+        name=f"auto_del_cmd_{chat_id}_{message_id}",
+    )
 
 async def clean(bot, chat_id: int, ids: list):
     for i in ids:
