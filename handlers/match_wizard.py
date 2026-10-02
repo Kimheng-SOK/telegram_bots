@@ -20,14 +20,18 @@ async def newmatch(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             "Please run /newmatch inside your team group. / សូមប្រើ /newmatch នៅក្នុងក្រុម。"
         )
         return ConversationHandler.END
+
     lang = get_lang(update.effective_chat.id)
     keys = {"en": ["en"], "km": ["km"], "both": ["en", "km"]}[lang]
     forms = "\n".join(f"<pre>{TEMPLATES[k]}</pre>" for k in keys)
+
     prompt = await update.message.reply_text(
         f"📝 <b>{t(lang, 'form_title')}</b>\n{t(lang, 'form_help')}\n\n{forms}\n/cancel",
         parse_mode=ParseMode.HTML,
         reply_markup=_force_reply(),
     )
+
+    # Store user command and initial bot prompt for cleanup
     ctx.user_data["cleanup"] = [update.message.message_id, prompt.message_id]
     return FORM
 
@@ -36,14 +40,16 @@ async def got_form(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     ctx.user_data.setdefault("cleanup", []).append(update.message.message_id)
     lang = get_lang(update.effective_chat.id)
     data, missing = parse_form(update.message.text)
+
     if missing:
         names = ", ".join(pick(lang, FIELD_LABELS[k]) for k in missing)
         msg = await update.message.reply_text(
-            f"⚠️ {t(lang, 'missing')} {names}\n{t(lang, 'resend')}",
+            f"⚠️️ {t(lang, 'missing')} {names}\n{t(lang, 'resend')}",
             reply_markup=_force_reply(),
         )
         ctx.user_data["cleanup"].append(msg.message_id)
         return FORM
+
     ctx.user_data["m"] = data
     preview_data = {**data, "view": "attend", "open": 1}
     kb = Markup(
@@ -52,6 +58,7 @@ async def got_form(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             [Btn(pick(lang, STR["btn_cancel"]), callback_data="cancel")],
         ]
     )
+
     preview = await update.message.reply_text(
         f"{t(lang, 'preview')}\n\n" + render(preview_data, [], lang),
         parse_mode=ParseMode.HTML,
@@ -64,11 +71,19 @@ async def got_form(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def confirm(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     await q.answer()
-    d = ctx.user_data.pop("m")
+
+    d = ctx.user_data.pop("m", None)
+    cleanup_ids = ctx.user_data.pop("cleanup", [])
     chat_id = q.message.chat_id
+
+    if not d:
+        await clean(ctx.bot, chat_id, cleanup_ids)
+        return ConversationHandler.END
 
     mid = create_match(chat_id, d)
     m = get_match(mid)
+
+    # Send and pin official match card
     msg = await ctx.bot.send_message(
         chat_id,
         render(m, [], get_lang(chat_id)),
@@ -80,11 +95,14 @@ async def confirm(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     try:
         await ctx.bot.pin_chat_message(chat_id, msg.message_id)
     except TelegramError:
-        await ctx.bot.send_message(
+        err_msg = await ctx.bot.send_message(
             chat_id, "⚠️ I couldn't pin it. Give me the 'Pin messages' admin right."
         )
+        # Note: We do not add err_msg to cleanup so administrators can see the permission warning.
 
-    await clean(ctx.bot, chat_id, ctx.user_data.pop("cleanup", []))
+    # 🧹 Automatically purge all setup wizard messages
+    await clean(ctx.bot, chat_id, cleanup_ids)
+    ctx.user_data.clear()
     return ConversationHandler.END
 
 
@@ -92,9 +110,13 @@ async def cancel(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     ids = ctx.user_data.pop("cleanup", [])
     ctx.user_data.pop("m", None)
     chat_id = update.effective_chat.id
+
     if update.callback_query:
         await update.callback_query.answer("✖")
-    else:
+    elif update.message:
         ids.append(update.message.message_id)
+
+    # 🧹 Purge wizard setup messages upon cancellation
     await clean(ctx.bot, chat_id, ids)
+    ctx.user_data.clear()
     return ConversationHandler.END

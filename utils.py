@@ -1,5 +1,6 @@
 import html
 import re
+import asyncio
 from telegram import InlineKeyboardButton as Btn, InlineKeyboardMarkup as Markup
 from telegram.constants import ParseMode
 from telegram.error import BadRequest, TelegramError
@@ -31,6 +32,14 @@ def get_val(obj, key, default=None):
         return obj.get(key, default)
     return getattr(obj, key, default)
 
+async def delete_after(bot, chat_id: int, message_id: int, delay_seconds: int = 0):
+    """Deletes a message after a given delay in seconds (default is instant)."""
+    if delay_seconds > 0:
+        await asyncio.sleep(delay_seconds)
+    try:
+        await bot.delete_message(chat_id=chat_id, message_id=message_id)
+    except TelegramError:
+        pass
 
 def render(m, votes, lang: str) -> str:
     yes = [get_val(v, "name") for v in votes if get_val(v, "status") == "ATTEND"]

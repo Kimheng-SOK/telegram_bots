@@ -8,9 +8,9 @@ An English & Khmer dual-language Telegram bot built with `python-telegram-bot` (
 * **Multi-Language Support**: English, Khmer (ខ្មែរ), or Dual-language mode (default).
 * **Interactive Form Wizard**: Guided `/newmatch` creation with instant group preview.
 * **Inline Voting & Real-Time Updating**: Attendees click dynamic buttons; the pinned match summary edits live without chat spam.
-* **Database Agnostic**: Powered by `SQLModel` (SQLAlchemy ORM). Works out-of-the-box with **SQLite**, **PostgreSQL**, **MySQL**, or **MariaDB** by simply updating the `DATABASE_URL` environment variable.
-* **Auto-Cleanup**: Cleans up wizard setup messages to keep group chats clutter-free.
-
+* **Database Agnostic**: Powered by `SQLModel` (SQLAlchemy ORM). Seamlessly works with **SQLite**, **PostgreSQL**, **MySQL**, or **MariaDB** by simply modifying `DATABASE_URL`.
+* **Timezone-Aware Accuracy**: Uses UTC timestamps (`timezone.utc`) for robust cross-server/cloud tracking.
+* **Auto-Cleanup**: Automatically cleans up wizard setup messages to keep group chats clutter-free.
 ---
 
 ## 📁 Project Structure
@@ -65,7 +65,7 @@ pip install -r requirements.txt
 ```
 
 ### 5. Configure Environment Variables
-Create a .env file in the project root directory:
+Create a `.env` file in the project root directory:
 
 ```bash
 BOT_TOKEN=123456:ABC...
