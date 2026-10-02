@@ -1,5 +1,5 @@
 import asyncio
-
+from config import TIME_CARD_DELETE
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import TelegramError
 from telegram.ext import ContextTypes
@@ -17,9 +17,8 @@ from database import (
     get_match_by_id
 )
 from strings import t
-from utils import refresh, is_admin, delete_after, clean, pin_match_card
-
-
+from utils import refresh, is_admin, delete_after, clean, pin_match_card, delete_job_callback
+from datetime import timedelta
 
 def get_val(obj, key, default=None):
     """Safely retrieves property whether obj is a dict or a SQLModel object."""
@@ -178,7 +177,7 @@ async def cb_close_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Schedule match card deletion in 4 hours (14400 seconds)
         context.job_queue.run_once(
             delete_job_callback,
-            when=14400,
+            when=timedelta(seconds=int(TIME_CARD_DELETE)),
             data={"chat_id": chat_id, "message_id": target_match.message_id},
             name=f"auto_del_match_{chat_id}_{target_match.message_id}",
         )
@@ -187,7 +186,7 @@ async def cb_close_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await clean(context.bot, chat_id, [q.message.message_id])
 
     # Pop-Up Alert Modal
-    await q.answer(t(lamg, "alert_match_closed"), show_alert=True)
+    await q.answer(t(lang, "alert_match_closed"), show_alert=True)
 
 
 async def cmd_reopen(update: Update, context: ContextTypes.DEFAULT_TYPE):
