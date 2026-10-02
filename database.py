@@ -1,10 +1,11 @@
+from datetime import datetime, timezone
 from typing import Optional
-from datetime import datetime
-from sqlmodel import Field, SQLModel, create_engine, Session, select
+
+from sqlmodel import Field, SQLModel, Session, create_engine, select
+
 from config import DATABASE_URL, DEFAULT_LANG
 
-# SQLite requires a specific argument for thread safety in multi-threaded contexts;
-# PostgreSQL and MySQL do not need it.
+# SQLite multi-thread safety check
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 engine = create_engine(DATABASE_URL, echo=False, connect_args=connect_args)
 
@@ -30,7 +31,9 @@ class Votes(SQLModel, table=True):
     user_id: int = Field(primary_key=True)
     name: str
     status: str
-    updated: datetime = Field(default_factory=datetime.utcnow)
+    updated: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
 
 
 class Chats(SQLModel, table=True):
@@ -40,7 +43,7 @@ class Chats(SQLModel, table=True):
 
 # ----------------------------------------------------------- DB Operations
 def init_db():
-    """Creates tables for whatever database backend DATABASE_URL points to."""
+    """Creates tables for whatever database engine DATABASE_URL points to."""
     SQLModel.metadata.create_all(engine)
 
 
@@ -134,19 +137,21 @@ def close_match(mid: int):
 def record_vote(mid: int, user_id: int, user_full_name: str, status: str) -> bool:
     with Session(engine) as session:
         vote = session.get(Votes, (mid, user_id))
+        now = datetime.now(timezone.utc)
+
         if vote:
             if vote.status == status:
                 return False  # No status change
             vote.status = status
             vote.name = user_full_name
-            vote.updated = datetime.utcnow()
+            vote.updated = now
         else:
             vote = Votes(
                 match_id=mid,
                 user_id=user_id,
                 name=user_full_name,
                 status=status,
-                updated=datetime.utcnow(),
+                updated=now,
             )
             session.add(vote)
         session.commit()

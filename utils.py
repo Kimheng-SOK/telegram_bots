@@ -25,10 +25,14 @@ REQUIRED = ["date", "start", "end", "size", "location", "opponent", "kits"]
 KH_DIGITS = str.maketrans("០១២៣៤៥៦៧៨៩", "0123456789")
 
 
-def render(m, votes, lang: str) -> str:
-    # Handles both dicts (during setup preview) and ORM objects
-    get_val = lambda obj, key: obj[key] if isinstance(obj, dict) else getattr(obj, key)
+def get_val(obj, key, default=None):
+    """Safely retrieves property whether obj is a dict or a SQLModel object."""
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
 
+
+def render(m, votes, lang: str) -> str:
     yes = [get_val(v, "name") for v in votes if get_val(v, "status") == "ATTEND"]
     no = [get_val(v, "name") for v in votes if get_val(v, "status") == "NOT"]
     size = get_val(m, "size")
@@ -66,8 +70,6 @@ def render(m, votes, lang: str) -> str:
 
 
 def keyboard(m):
-    get_val = lambda obj, key: obj[key] if isinstance(obj, dict) else getattr(obj, key)
-
     if not get_val(m, "open"):
         return None
 
@@ -96,11 +98,20 @@ def keyboard(m):
 
 async def refresh(bot, mid: int):
     m = get_match(mid)
+    if not m:
+        return
+
+    chat_id = get_val(m, "chat_id")
+    message_id = get_val(m, "message_id")
+
+    if not message_id:
+        return
+
     try:
         await bot.edit_message_text(
-            chat_id=m["chat_id"],
-            message_id=m["message_id"],
-            text=render(m, get_votes(mid), get_lang(m["chat_id"])),
+            chat_id=chat_id,
+            message_id=message_id,
+            text=render(m, get_votes(mid), get_lang(chat_id)),
             parse_mode=ParseMode.HTML,
             reply_markup=keyboard(m),
         )
