@@ -1,3 +1,4 @@
+import asyncio
 from telegram import Update
 from telegram.error import TelegramError
 from telegram.ext import ContextTypes
@@ -12,7 +13,7 @@ from database import (
     close_match,
 )
 from strings import t
-from utils import refresh, is_admin
+from utils import refresh, is_admin, delete_after
 
 
 def get_val(obj, key, default=None):
@@ -48,7 +49,8 @@ async def on_button(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             key = "you_yes" if changed else "already_yes"
         else:
             key = "you_no" if changed else "already_no"
-        await q.answer(t(lang, key))
+        await asyncio.sleep(1)
+        await q.answer(t(lang, key), show_alert=True)
     else:
         new = "not" if m_view == "attend" else "attend"
         set_match_view(m_id, new)
@@ -92,23 +94,40 @@ async def cmd_change(u, c):
 
 async def cmd_close(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
+    chat_id = chat.id
+    user_id = update.effective_user.id
     lang = get_lang(chat.id)
-    if not await is_admin(ctx.bot, chat.id, update.effective_user.id):
-        await update.message.reply_text(t(lang, "only_admin"))
+
+    # 1. Instantly delete the user's /close command trigger to keep chat clean
+    asyncio.create_task(delete_after(ctx.bot, chat_id, update.message.message_id, 0))
+
+    # 2. Check admin privileges (auto-delete error alert after 5s)
+    if not await is_admin(ctx.bot, chat_id, user_id):
+        err_msg = await ctx.bot.send_message(chat_id, t(lang, "only_admin"))
+        asyncio.create_task(delete_after(ctx.bot, chat_id, err_msg.message_id, 5))
         return
 
+    # 3. Check for active open match (auto-delete notice after 5s)
     m = latest_open(chat.id)
     if not m:
-        await update.message.reply_text(t(lang, "no_open"))
+        err_msg = await ctx.bot.send_message(chat_id, t(lang, "no_open"))
+        asyncio.create_task(delete_after(ctx.bot, chat_id, err_msg.message_id, 5))
         return
 
     m_id = get_val(m, "id")
     m_msg_id = get_val(m, "message_id")
 
+    # 4. Close match in DB and refresh the live pinned card UI
     close_match(m_id)
     await refresh(ctx.bot, m_id)
+
+    # 5. Unpin the match card from the group
     try:
         if m_msg_id:
             await ctx.bot.unpin_chat_message(chat.id, m_msg_id)
     except TelegramError:
         pass
+
+    # Optional: Schedule the closed match card to auto-delete after 2 hours (7200 seconds)
+    # if m_msg_id:
+    #     asyncio.create_task(delete_after(ctx.bot, chat_id, m_msg_id, 7200))

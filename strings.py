@@ -1,35 +1,37 @@
-# Each entry is (English, Khmer)
+# Each entry is either (English, Khmer) tuple or {"en": ..., "km": ...} dict
 STR = {
-    "title": ("MATCH DAY", "ថ្ងៃប្រកួត"),
-    "kit": ("Kit", "ឈុតអាវ"),
+    "title": ("friendly match", "ការប្រកួតបាល់ទាត់"),
+    "date_label": ("Date", "កាលបរិច្ឆេទ"),
+    "time_label": ("Time", "ពេលវេលា"),
+    "location_label": ("Location", "ទីតាំង"),
+    "vs_label": ("Opponent", "ប្រកួតជាមួយ"),
+    "mode_label": ("Mode", "ទម្រង់លេង"),
+    "kit_label": ("Kit", "ឯកសណ្ឋាន"),
     "attending": ("ATTENDING", "បានចូលរួម"),
     "not_attending": ("NOT ATTENDING", "មិនបានចូលរួម"),
     "count_yes": ("Attending", "អ្នកបានចូលរួម"),
     "count_no": ("Not attending", "អ្នកមិនចូលរួម"),
     "no_yes": ("No one yet. Be the first!", "មិនទាន់មានអ្នកណាចូលរួមទេ ចុចខាងក្រោមដើម្បីក្លាយជាមនុស្សទីមួយ🕺"),
     "no_no": ("No one. Great!", "គ្មានទេ។ ពិតជាគួរអោយរំភើបមែន🫨"),
-    "closed": ("VOTING CLOSED", "បិទការចុះឈ្មោះហើយ😎"),
+    "closed": ("Voting has ended / Poll closed", "បិទការចុះឈ្មោះហើយ😎"),
     "footer": (
-        "Tap a button below, or use /attend · /notattend · /change",
-        "ចុចប៊ូតុងខាងក្រោម ឬប្រើ /attend · /notattend · /change",
+        "⏰ Please arrive 15–20 minutes early! Let's bring our A-game! 💪🔥",
+        "⚡️ គោរពពេលវេលា = គោរពក្រុម!\n សូមមកដល់មុនម៉ោង ១៥នាទី ដើម្បីត្រៀមខ្លួន ⚽️🔥",
     ),
     "btn_yes": ("Attend", "បានទៅ"),
     "btn_no": ("Can't", "មិនបានទៅ"),
     "btn_confirm": ("✅ Confirm & post", "✅ បញ្ជាក់ & បង្ហោះ"),
     "btn_cancel": ("✖ Cancel", "✖ បោះបង់"),
-    "you_yes": ("You are attending ✅", "អ្នកនឹងមក ✅"),
-    "you_no": ("You are not attending ❌", "អ្នកមិនមកទេ ❌"),
-    "already_yes": ("Already attending ✅", "អ្នកបានចុះឈ្មោះមករួចហើយ ✅"),
-    "already_no": ("Already not attending ❌", "អ្នកបានប្រាប់ថាមិនមករួចហើយ ❌"),
+    "you_yes": ("You are attending ✅", "🤩 អ្នកនឹងចូលរួម តែបើអត់មកទេ គុណលុយនឹង២ 🤩"),
+    "you_no": ("You are not attending ❌", "👹 ប្រាកដហើយថាអត់មក ប្រយ័ត្នស្តាយក្រោយ 👹"),
+    "already_yes": ("Already attending ✅", "🫶 អ្នកបានចុះឈ្មោះមករួចហើយ 🫶"),
+    "already_no": ("Already not attending ❌", "🤌 អ្នកបានប្រាប់ថាមិនមករួចហើយ 🤌"),
     "closed_alert": ("This match is closed.", "ការប្រកួតនេះបានបិទហើយ។"),
-    "no_open": (
-        "No open match. Create one with /newmatch",
-        "មិនមានការប្រកួតដែលកំពុងបើកទេ។ បង្កើតថ្មីដោយ /newmatch",
-    ),
-    "only_admin": (
-        "Only group admins can do this.",
-        "មានតែអ្នកគ្រប់គ្រងក្រុមប៉ុណ្ណោះដែលអាចធ្វើបាន។",
-    ),
+    "see_text": ("Show", "មើល"),
+    "no_open": {
+        "en": "No open match. Create one with /newmatch",
+        "km": "មិនមានការប្រកួតដែលកំពុងបើកទេ។ បង្កើតថ្មីដោយ /newmatch",
+    },
     "form_title": ("New match form", "ទម្រង់ប្រកួតថ្មី"),
     "form_help": (
         "Tap the form to copy it, fill it in, and send it back as ONE message:",
@@ -37,7 +39,7 @@ STR = {
     ),
     "preview": ("Preview:", "ផ្ទៀងផ្ទាត់៖"),
     "missing": ("Missing or invalid:", "ខ្វះ ឬមិនត្រឹមត្រូវ៖"),
-    "resend": ("Please send the whole form again.", "សូមផ្ញើទម្រង់សារជាថ្នី។"),
+    "resend": ("Please send the whole form again.", "សូមផ្ញើទម្រង់សារជាថ្មី។"),
     "select_lang": {
         "en": "🌐 Please select group language:",
         "km": "🌐 សូមជ្រើសរើសភាសាសម្រាប់ក្រុម៖",
@@ -56,17 +58,19 @@ STR = {
             "/newmatch – Create a new match announcement\n"
             "/close – [Admin] Close voting & unpin post\n"
             "/lang – [Admin] Set group language\n"
+            "/cancel – Cancel active match creation"
         ),
         "km": (
             "⚽ Match bot\n"
             "/newmatch – បង្កើតការប្រកួតថ្មី\n"
-            "/close – បិទការចុះឈ្មោះ (សម្រាប់admin)\n"
-            "/lang – ប្តូរភាសា (សម្រាប់admin)"
+            "/close – បិទការចុះឈ្មោះ (សម្រាប់ admin)\n"
+            "/lang – ប្តូរភាសា (សម្រាប់ admin)\n"
+            "/cancel – បោះបង់ការបង្កើត"
         ),
     },
 }
 
-LONG_KEYS = {"footer", "form_help", "resend"}
+LONG_KEYS = {"footer", "form_help", "resend", "help_text"}
 
 FIELD_LABELS = {
     "date": ("Date", "កាលបរិច្ឆេទ"),
@@ -77,13 +81,6 @@ FIELD_LABELS = {
     "opponent": ("Opponent", "ក្រុមគូប្រជែង"),
     "kits": ("Kit", "ឈុតអាវ"),
 }
-
-# HELP_TEXT = (
-#     "⚽ Match bot\n"
-#     "/newmatch – create a match / បង្កើតការប្រកួត\n"
-#     "/close – close voting (admins) / បិទការចុះឈ្មោះ (admin)\n"
-#     "/lang – language (admins) / ប្តូរភាសា (admin)"
-# )
 
 TEMPLATES = {
     "en": "Date: \nStart: \nEnd: \nTeam: 7\nLocation: \nOpponent: \nKit: ",
@@ -99,21 +96,26 @@ def pick(lang: str, pair: tuple, sep: str = " / ") -> str:
         return f"{en}{sep}{km}"
     return en
 
-#
-# def t(lang: str, key: str) -> str:
-#     return pick(lang, STR[key], "\n" if key in LONG_KEYS else " / ")
-#
 
-# Example t() implementation in strings.py
 def t(lang: str, key: str) -> str:
     if key not in STR:
-        return key  # Returns key if missing
+        return key
 
     val = STR[key]
+    sep = "\n" if key in LONG_KEYS else " / "
 
+    # Handle dictionary entries {"en": ..., "km": ...}
     if isinstance(val, dict):
+        en_str = val.get("en", "")
+        km_str = val.get("km", val.get("kh", ""))  # supports both 'km' and 'kh' fallback
+        if lang == "km":
+            return km_str
         if lang == "both":
-            return f"{val.get('en', '')}\n{val.get('km', '')}"
-        return val.get(lang, val.get("en", key))
+            return f"{en_str}{sep}{km_str}"
+        return en_str
+
+    # Handle tuple entries ("English", "Khmer")
+    if isinstance(val, tuple):
+        return pick(lang, val, sep)
 
     return str(val)

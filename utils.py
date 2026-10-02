@@ -1,6 +1,7 @@
 import html
 import re
 import asyncio
+import unicodedata
 from telegram import InlineKeyboardButton as Btn, InlineKeyboardMarkup as Markup
 from telegram.constants import ParseMode
 from telegram.error import BadRequest, TelegramError
@@ -41,39 +42,84 @@ async def delete_after(bot, chat_id: int, message_id: int, delay_seconds: int = 
     except TelegramError:
         pass
 
-def render(m, votes, lang: str) -> str:
+def get_display_width(text: str) -> int:
+    """Calculate visible width of text, accounting for wide Unicode characters."""
+    width = 0
+    for char in text:
+        # Strip zero-width joiners / non-spacing marks (common in Khmer script)
+        if unicodedata.category(char) in ('Mn', 'Me', 'Cf'):
+            continue
+        # East Asian Wide / Fullwidth characters count as 2 width units
+        if unicodedata.east_asian_width(char) in ('F', 'W'):
+            width += 2
+        else:
+            width += 1
+    return width
+
+def render(m, votes, lang: str = "km") -> str:
     yes = [get_val(v, "name") for v in votes if get_val(v, "status") == "ATTEND"]
     no = [get_val(v, "name") for v in votes if get_val(v, "status") == "NOT"]
-    size = get_val(m, "size")
 
+    size = get_val(m, "size")
+    total_spots = int(size) * 2 if size and str(size).isdigit() else None
+
+    title_text = f"🏆  {t(lang, 'title')}  🏆"
+
+    # 1. Calculate dynamic box width based on title content
+    title_width = get_display_width(title_text)
+    box_inner_width = max(title_width + 4, 28)  # Ensure a minimum clean width
+
+    # Dynamic border components
+    # top_border = "┌" + "─" * box_inner_width + "┐"
+    # bottom_border = "└" + "─" * box_inner_width + "┘"
+    dynamic_line = "─" * (box_inner_width + 2)
+
+    # # Center title dynamically
+    # padding = box_inner_width - title_width
+    # left_pad = padding // 2
+    # right_pad = padding - left_pad
+    # centered_title = f"│{' ' * left_pad}{title_text}{' ' * right_pad}│"
+
+    # Assemble Render Lines
     lines = [
-        f"⚽ <b>{t(lang, 'title')}</b> ⚽",
-        LINE,
-        f"📅 <b>{e(get_val(m, 'date'))}</b>",
-        f"⏰ {e(get_val(m, 'start'))} – {e(get_val(m, 'end'))}",
-        f"📍 {e(get_val(m, 'location'))}",
-        LINE,
-        f"🆚 <b>{e(get_val(m, 'opponent'))}</b>  ·  {size} vs {size}",
-        f"👕 {t(lang, 'kit')}: {e(get_val(m, 'kits'))}",
-        LINE,
+        f"🏆  {t(lang, 'title')}  🏆",
+        f"📅 <b>{t(lang, 'date_label')}:</b> {e(get_val(m, 'date'))}",
+        f"⏰ <b>{t(lang, 'time_label')}:</b> {e(get_val(m, 'start'))} - {e(get_val(m, 'end'))}",
+        f"📍 <b>{t(lang, 'location_label')}:</b> {e(get_val(m, 'location'))}",
+        f"<code>{dynamic_line}</code>",
+
+        f"⚔️ <b>{t(lang, 'vs_label')}:</b> {e(get_val(m, 'opponent'))}",
+        f"⚽ <b>{t(lang, 'mode_label')}:</b> {size} vs {size}",
+        f"👕 <b>{t(lang, 'kit_label')}:</b> {e(get_val(m, 'kits'))}",
+        f"<code>{dynamic_line}</code>",
     ]
 
-    if get_val(m, "view") == "attend":
-        lines.append(f"✅ <b>{t(lang, 'attending')}</b>   {len(yes)}")
-        lines += [f"{i}. {e(n)}" for i, n in enumerate(yes, 1)] if yes else [f"<i>{t(lang, 'no_yes')}</i>"]
+    # Dynamic Roster Section
+    view = get_val(m, "view")
+    if view == "attend":
+        capacity_str = f"({len(yes)}"
+        lines.append(f"✅ <b>{t(lang, 'attending')} {capacity_str}</b>")
+        if yes:
+            lines.extend([f"  {i}. {e(n)}" for i, n in enumerate(yes, 1)])
+        else:
+            lines.append(f"  <i>{t(lang, 'no_yes')}</i>")
         lines.append("")
-        lines.append(f"❌ {t(lang, 'count_no')}: {len(no)}")
+        lines.append(f"❌ <b>{t(lang, 'count_no')}:</b> {len(no)}")
     else:
-        lines.append(f"❌ <b>{t(lang, 'not_attending')}</b>   {len(no)}")
-        lines += [f"{i}. {e(n)}" for i, n in enumerate(no, 1)] if no else [f"<i>{t(lang, 'no_no')}</i>"]
+        lines.append(f"❌ <b>{t(lang, 'not_attending')} ({len(no)})</b>")
+        if no:
+            lines.extend([f"  {i}. {e(n)}" for i, n in enumerate(no, 1)])
+        else:
+            lines.append(f"  <i>{t(lang, 'no_no')}</i>")
         lines.append("")
-        lines.append(f"✅ {t(lang, 'count_yes')}: {len(yes)}")
+        lines.append(f"✅ <b>{t(lang, 'count_yes')}:</b> {len(yes)}")
 
-    lines.append(LINE)
+    # Footer Status
+    lines.append(f"<code>{dynamic_line}</code>")
     if not get_val(m, "open"):
         lines.append(f"🔒 <b>{t(lang, 'closed')}</b>")
     else:
-        lines.append(f"<i>{t(lang, 'footer')}</i>")
+        lines.append(f"⚠️ <i>{t(lang, 'footer')}</i>")
 
     return "\n".join(lines)
 
@@ -100,7 +146,7 @@ def keyboard(m):
                 Btn(f"✅ {t(lang, 'btn_yes')} ({yes})", callback_data=f"v:{match_id}:ATTEND"),
                 Btn(f"❌ {t(lang, 'btn_no')} ({no})", callback_data=f"v:{match_id}:NOT"),
             ],
-            [Btn(f"👀 {emoji} {t(lang, key)}", callback_data=f"t:{match_id}")],
+            [Btn(f" {t(lang, 'see_text')} 👀 {emoji} {t(lang, key)}", callback_data=f"t:{match_id}")],
         ]
     )
 
