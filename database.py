@@ -1,113 +1,153 @@
-import sqlite3
-from config import DB_FILE, DEFAULT_LANG
+from typing import Optional
+from datetime import datetime
+from sqlmodel import Field, SQLModel, create_engine, Session, select
+from config import DATABASE_URL, DEFAULT_LANG
+
+# SQLite requires a specific argument for thread safety in multi-threaded contexts;
+# PostgreSQL and MySQL do not need it.
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+engine = create_engine(DATABASE_URL, echo=False, connect_args=connect_args)
 
 
-def db() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    return conn
+# -------------------------------------------------------------------- Models
+class Matches(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    chat_id: int = Field(index=True)
+    message_id: Optional[int] = Field(default=None)
+    date: str
+    start: str
+    end: str
+    size: int
+    location: str
+    opponent: str
+    kits: str
+    view: str = Field(default="attend")
+    open: int = Field(default=1)
 
 
+class Votes(SQLModel, table=True):
+    match_id: int = Field(primary_key=True)
+    user_id: int = Field(primary_key=True)
+    name: str
+    status: str
+    updated: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Chats(SQLModel, table=True):
+    chat_id: int = Field(primary_key=True)
+    lang: str
+
+
+# ----------------------------------------------------------- DB Operations
 def init_db():
-    with db() as c:
-        c.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS matches(
-                                                  id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                                  chat_id INTEGER, message_id INTEGER,
-                                                  date TEXT, start TEXT, end TEXT, size INTEGER,
-                                                  location TEXT, opponent TEXT, kits TEXT,
-                                                  view TEXT DEFAULT 'attend', open INTEGER DEFAULT 1);
-            CREATE TABLE IF NOT EXISTS votes(
-                                                match_id INTEGER, user_id INTEGER, name TEXT, status TEXT,
-                                                updated TEXT, PRIMARY KEY(match_id, user_id));
-            CREATE TABLE IF NOT EXISTS chats(chat_id INTEGER PRIMARY KEY, lang TEXT);
-            """
-        )
+    """Creates tables for whatever database backend DATABASE_URL points to."""
+    SQLModel.metadata.create_all(engine)
 
 
 def get_lang(chat_id: int) -> str:
-    with db() as c:
-        row = c.execute("SELECT lang FROM chats WHERE chat_id=?", (chat_id,)).fetchone()
-    return row["lang"] if row else DEFAULT_LANG
+    with Session(engine) as session:
+        chat = session.get(Chats, chat_id)
+        return chat.lang if chat else DEFAULT_LANG
 
 
 def set_lang(chat_id: int, lang: str):
-    with db() as c:
-        c.execute(
-            "INSERT INTO chats(chat_id,lang) VALUES(?,?) "
-            "ON CONFLICT(chat_id) DO UPDATE SET lang=excluded.lang",
-            (chat_id, lang),
+    with Session(engine) as session:
+        chat = session.get(Chats, chat_id)
+        if chat:
+            chat.lang = lang
+        else:
+            chat = Chats(chat_id=chat_id, lang=lang)
+            session.add(chat)
+        session.commit()
+
+
+def get_match(mid: int) -> Optional[Matches]:
+    with Session(engine) as session:
+        return session.get(Matches, mid)
+
+
+def latest_open(chat_id: int) -> Optional[Matches]:
+    with Session(engine) as session:
+        statement = (
+            select(Matches)
+            .where(Matches.chat_id == chat_id)
+            .where(Matches.open == 1)
+            .where(Matches.message_id.is_not(None))
+            .order_by(Matches.id.desc())
+            .limit(1)
         )
+        return session.exec(statement).first()
 
 
-def get_match(mid: int):
-    with db() as c:
-        return c.execute("SELECT * FROM matches WHERE id=?", (mid,)).fetchone()
-
-
-def latest_open(chat_id: int):
-    with db() as c:
-        return c.execute(
-            "SELECT * FROM matches WHERE chat_id=? AND open=1 AND message_id IS NOT NULL "
-            "ORDER BY id DESC LIMIT 1",
-            (chat_id,),
-        ).fetchone()
-
-
-def get_votes(mid: int):
-    with db() as c:
-        return c.execute(
-            "SELECT * FROM votes WHERE match_id=? ORDER BY updated, rowid", (mid,)
-        ).fetchall()
+def get_votes(mid: int) -> list[Votes]:
+    with Session(engine) as session:
+        statement = (
+            select(Votes)
+            .where(Votes.match_id == mid)
+            .order_by(Votes.updated, Votes.user_id)
+        )
+        return session.exec(statement).all()
 
 
 def create_match(chat_id: int, data: dict) -> int:
-    with db() as c:
-        cur = c.execute(
-            "INSERT INTO matches(chat_id,date,start,end,size,location,opponent,kits) "
-            "VALUES(?,?,?,?,?,?,?,?)",
-            (
-                chat_id,
-                data["date"],
-                data["start"],
-                data["end"],
-                data["size"],
-                data["location"],
-                data["opponent"],
-                data["kits"],
-            ),
+    with Session(engine) as session:
+        match = Matches(
+            chat_id=chat_id,
+            date=data["date"],
+            start=data["start"],
+            end=data["end"],
+            size=data["size"],
+            location=data["location"],
+            opponent=data["opponent"],
+            kits=data["kits"],
         )
-        return cur.lastrowid
+        session.add(match)
+        session.commit()
+        session.refresh(match)
+        return match.id
 
 
 def update_match_message_id(mid: int, message_id: int):
-    with db() as c:
-        c.execute("UPDATE matches SET message_id=? WHERE id=?", (message_id, mid))
+    with Session(engine) as session:
+        match = session.get(Matches, mid)
+        if match:
+            match.message_id = message_id
+            session.commit()
 
 
 def set_match_view(mid: int, view: str):
-    with db() as c:
-        c.execute("UPDATE matches SET view=? WHERE id=?", (view, mid))
+    with Session(engine) as session:
+        match = session.get(Matches, mid)
+        if match:
+            match.view = view
+            session.commit()
 
 
 def close_match(mid: int):
-    with db() as c:
-        c.execute("UPDATE matches SET open=0 WHERE id=?", (mid,))
+    with Session(engine) as session:
+        match = session.get(Matches, mid)
+        if match:
+            match.open = 0
+            session.commit()
 
 
 def record_vote(mid: int, user_id: int, user_full_name: str, status: str) -> bool:
-    with db() as c:
-        row = c.execute(
-            "SELECT status FROM votes WHERE match_id=? AND user_id=?", (mid, user_id)
-        ).fetchone()
-        if row and row["status"] == status:
-            return False
-        c.execute(
-            """INSERT INTO votes(match_id,user_id,name,status,updated)
-               VALUES(?,?,?,?,strftime('%Y-%m-%d %H:%M:%f','now'))
-                   ON CONFLICT(match_id,user_id) DO UPDATE SET
-                status=excluded.status, name=excluded.name, updated=excluded.updated""",
-            (mid, user_id, user_full_name, status),
-        )
-    return True
+    with Session(engine) as session:
+        vote = session.get(Votes, (mid, user_id))
+        if vote:
+            if vote.status == status:
+                return False  # No status change
+            vote.status = status
+            vote.name = user_full_name
+            vote.updated = datetime.utcnow()
+        else:
+            vote = Votes(
+                match_id=mid,
+                user_id=user_id,
+                name=user_full_name,
+                status=status,
+                updated=datetime.utcnow(),
+            )
+            session.add(vote)
+        session.commit()
+        return True

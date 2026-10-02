@@ -26,59 +26,70 @@ KH_DIGITS = str.maketrans("០១២៣៤៥៦៧៨៩", "0123456789")
 
 
 def render(m, votes, lang: str) -> str:
-    yes = [v["name"] for v in votes if v["status"] == "ATTEND"]
-    no = [v["name"] for v in votes if v["status"] == "NOT"]
-    size = m["size"]
+    # Handles both dicts (during setup preview) and ORM objects
+    get_val = lambda obj, key: obj[key] if isinstance(obj, dict) else getattr(obj, key)
+
+    yes = [get_val(v, "name") for v in votes if get_val(v, "status") == "ATTEND"]
+    no = [get_val(v, "name") for v in votes if get_val(v, "status") == "NOT"]
+    size = get_val(m, "size")
+
     lines = [
         f"⚽ <b>{t(lang, 'title')}</b> ⚽",
         LINE,
-        f"📅 <b>{e(m['date'])}</b>",
-        f"⏰ {e(m['start'])} – {e(m['end'])}",
-        f"📍 {e(m['location'])}",
+        f"📅 <b>{e(get_val(m, 'date'))}</b>",
+        f"⏰ {e(get_val(m, 'start'))} – {e(get_val(m, 'end'))}",
+        f"📍 {e(get_val(m, 'location'))}",
         LINE,
-        f"🆚 <b>{e(m['opponent'])}</b>  ·  {size} vs {size}",
-        f"👕 {t(lang, 'kit')}: {e(m['kits'])}",
+        f"🆚 <b>{e(get_val(m, 'opponent'))}</b>  ·  {size} vs {size}",
+        f"👕 {t(lang, 'kit')}: {e(get_val(m, 'kits'))}",
         LINE,
     ]
-    if m["view"] == "attend":
+
+    if get_val(m, "view") == "attend":
         lines.append(f"✅ <b>{t(lang, 'attending')}</b>   {len(yes)}")
-        if yes:
-            lines += [f"{i}. {e(n)}" for i, n in enumerate(yes, 1)]
-        else:
-            lines.append(f"<i>{t(lang, 'no_yes')}</i>")
+        lines += [f"{i}. {e(n)}" for i, n in enumerate(yes, 1)] if yes else [f"<i>{t(lang, 'no_yes')}</i>"]
         lines.append("")
         lines.append(f"❌ {t(lang, 'count_no')}: {len(no)}")
     else:
         lines.append(f"❌ <b>{t(lang, 'not_attending')}</b>   {len(no)}")
-        if no:
-            lines += [f"{i}. {e(n)}" for i, n in enumerate(no, 1)]
-        else:
-            lines.append(f"<i>{t(lang, 'no_no')}</i>")
+        lines += [f"{i}. {e(n)}" for i, n in enumerate(no, 1)] if no else [f"<i>{t(lang, 'no_no')}</i>"]
         lines.append("")
         lines.append(f"✅ {t(lang, 'count_yes')}: {len(yes)}")
+
     lines.append(LINE)
-    if not m["open"]:
+    if not get_val(m, "open"):
         lines.append(f"🔒 <b>{t(lang, 'closed')}</b>")
     else:
         lines.append(f"<i>{t(lang, 'footer')}</i>")
+
     return "\n".join(lines)
 
 
 def keyboard(m):
-    if not m["open"]:
+    get_val = lambda obj, key: obj[key] if isinstance(obj, dict) else getattr(obj, key)
+
+    if not get_val(m, "open"):
         return None
-    lang = get_lang(m["chat_id"])
-    votes = get_votes(m["id"])
-    yes = sum(v["status"] == "ATTEND" for v in votes)
-    no = sum(v["status"] == "NOT" for v in votes)
-    emoji, key = ("❌", "count_no") if m["view"] == "attend" else ("✅", "count_yes")
+
+    chat_id = get_val(m, "chat_id")
+    match_id = get_val(m, "id")
+    view = get_val(m, "view")
+
+    lang = get_lang(chat_id)
+    votes = get_votes(match_id)
+
+    yes = sum(get_val(v, "status") == "ATTEND" for v in votes)
+    no = sum(get_val(v, "status") == "NOT" for v in votes)
+
+    emoji, key = ("❌", "count_no") if view == "attend" else ("✅", "count_yes")
+
     return Markup(
         [
             [
-                Btn(f"✅ {t(lang, 'btn_yes')} ({yes})", callback_data=f"v:{m['id']}:ATTEND"),
-                Btn(f"❌ {t(lang, 'btn_no')} ({no})", callback_data=f"v:{m['id']}:NOT"),
+                Btn(f"✅ {t(lang, 'btn_yes')} ({yes})", callback_data=f"v:{match_id}:ATTEND"),
+                Btn(f"❌ {t(lang, 'btn_no')} ({no})", callback_data=f"v:{match_id}:NOT"),
             ],
-            [Btn(f"👀 {emoji} {t(lang, key)}", callback_data=f"t:{m['id']}")],
+            [Btn(f"👀 {emoji} {t(lang, key)}", callback_data=f"t:{match_id}")],
         ]
     )
 
