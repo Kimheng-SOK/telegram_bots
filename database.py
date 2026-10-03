@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional
+from sqlalchemy import BigInteger, Column
 from sqlmodel import Field, SQLModel, Session, create_engine, select
 
 from config import DATABASE_URL, DEFAULT_LANG
@@ -26,8 +27,8 @@ engine = create_engine(
 # -------------------------------------------------------------------- Models
 class Matches(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    chat_id: int = Field(index=True)
-    message_id: Optional[int] = Field(default=None)
+    chat_id: int = Field(sa_column=Column(BigInteger, index=True))
+    message_id: Optional[int] = Field(default=None, sa_column=Column(BigInteger, nullable=True))
     date: str
     start: str
     end: str
@@ -42,7 +43,7 @@ class Matches(SQLModel, table=True):
 
 class Votes(SQLModel, table=True):
     match_id: int = Field(primary_key=True)
-    user_id: int = Field(primary_key=True)
+    user_id: int = Field(sa_column=Column(BigInteger, primary_key=True))
     name: str
     status: str
     updated: datetime = Field(
@@ -51,9 +52,8 @@ class Votes(SQLModel, table=True):
 
 
 class Chats(SQLModel, table=True):
-    chat_id: int = Field(primary_key=True)
-    lang: str
-
+    chat_id: int = Field(sa_column=Column(BigInteger, primary_key=True))
+    lang: str = Field(default=DEFAULT_LANG)
 
 # ----------------------------------------------------------- DB Operations
 def init_db():

@@ -1,6 +1,6 @@
-# fly.toml app configuration file generated for gvs-matchbot on 2026-10-02T19:51:05Z
+# fly.toml app configuration file generated for gvs-matchbot on 2026-10-03T05:33:47Z
 #
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+# See https://docs.fly.io/reference/configuration for information about how to use this file.
 #
 
 app = 'gvs-matchbot'
@@ -8,16 +8,16 @@ primary_region = 'sin'
 
 [build]
 
-[http_service]
-  internal_port = 8080
-  force_https = true
-  auto_stop_machines = 'stop'
-  auto_start_machines = true
-  min_machines_running = 0
-  processes = ['app']
+[env]
+TIME_CARD_DELETE = "14400"
+DEFAULT_LANG = "km"
 
 [[vm]]
-  memory = '1gb'
+  memory = '256mb'
   cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 256
+
+[[restart]]
+  policy = 'always'
+  processes = ['app']
+  retries = 10
